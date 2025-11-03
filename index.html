@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenWRT Manager</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>OpenWRT Manager</h1>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot disconnected"></span>
+                Desconectado
+            </div>
+        </header>
+
+        <div class="sidebar">
+            <div class="connection-form">
+                <h3>Conectar ao Roteador</h3>
+                <form id="connectionForm">
+                    <input type="text" id="host" placeholder="Endereço IP (ex: 192.168.1.1)" required>
+                    <input type="text" id="username" placeholder="Usuário" value="root" required>
+                    <input type="password" id="password" placeholder="Senha" required>
+                    <button type="submit" id="connectButton">Conectar</button>
+                </form>
+            </div>
+
+            <nav class="navigation">
+                <button class="nav-btn active" data-tab="dashboard">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </button>
+                <button class="nav-btn" data-tab="network">
+                    <span class="nav-icon">🌐</span>
+                    Status da Rede
+                </button>
+                <button class="nav-btn" data-tab="wireless">
+                    <span class="nav-icon">📶</span>
+                    Wireless
+                </button>
+                <button class="nav-btn" data-tab="dhcp">
+                    <span class="nav-icon">🔗</span>
+                    Clientes DHCP
+                </button>
+                <button class="nav-btn" data-tab="firewall">
+                    <span class="nav-icon">🛡️</span>
+                    Firewall
+                </button>
+                <button class="nav-btn" data-tab="packages">
+                    <span class="nav-icon">📦</span>
+                    Pacotes
+                </button>
+                <button class="nav-btn" data-tab="services">
+                    <span class="nav-icon">⚙️</span>
+                    Serviços
+                </button>
+                <button class="nav-btn" data-tab="system">
+                    <span class="nav-icon">💻</span>
+                    Sistema
+                </button>
+                <button class="nav-btn" data-tab="logs">
+                    <span class="nav-icon">📋</span>
+                    Logs
+                </button>
+            </nav>
+        </div>
+
+        <main class="main-content">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content active">
+                <div class="tab-header">
+                    <h2>Dashboard do Sistema</h2>
+                    <p>Visão geral em tempo real do roteador OpenWRT</p>
+                </div>
+
+                <div id="dashboardAlert" class="alert-banner" style="display: none;">
+                    <div class="icon">⚠️</div>
+                    <div class="content">
+                        <h3 id="alertTitle">Atualização Disponível</h3>
+                        <p id="alertMessage"></p>
+                    </div>
+                    <button class="btn-update" onclick="showTab('packages')">Ver Atualizações</button>
+                </div>
+
+                <div class="stats-grid" id="systemStats">
+                    <div class="stat-card system">
+                        <h3>Sistema</h3>
+                        <div class="value">OpenWRT</div>
+                        <div class="subtext">Desconectado</div>
+                    </div>
+                    <div class="stat-card cpu">
+                        <h3>CPU</h3>
+                        <div class="value">0.00</div>
+                        <div class="subtext">Load Average</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-card memory">
+                        <h3>Status</h3>
+                        <div class="value">Offline</div>
+                        <div class="subtext">Desconectado</div>
+                    </div>
+                    <div class="stat-card network">
+                        <h3>Rede</h3>
+                        <div class="value">Inativa</div>
+                        <div class="subtext">Desconectado</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Interfaces de Rede</h3>
+                        <span class="interface-status" id="interfacesStatus">Desconectado</span>
+                    </div>
+                    <div class="interfaces-grid" id="interfacesGrid">
+                        <div class="text-center">Conecte-se ao roteador para ver as interfaces</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Dispositivos Conectados</h3>
+                        <span class="interface-status" id="devicesCount">Desconectado</span>
+                    </div>
+                    <div class="devices-grid" id="devicesGrid">
+                        <div class="text-center">Conecte-se ao roteador para ver os dispositivos</div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="action-btn" onclick="showTab('packages')">
+                        <span class="action-icon">🔄</span>
+                        Verificar Atualizações
+                    </button>
+                    <button class="action-btn restart" onclick="restartService('network')">
+                        <span class="action-icon">🔄</span>
+                        Reiniciar Rede
+                    </button>
+                    <button class="action-btn" onclick="refreshDashboard()">
+                        <span class="action-icon">📊</span>
+                        Atualizar Dashboard
+                    </button>
+                    <button class="action-btn reboot" onclick="rebootRouter()">
+                        <span class="action-icon">⚡</span>
+                        Reiniciar Roteador
+                    </button>
+                </div>
+            </div>
+
+            <!-- Network Tab -->
+            <div id="network" class="tab-content">
+                <div class="tab-header">
+                    <h2>Status da Rede</h2>
+                    <p>Configurações e status das interfaces de rede</p>
+                </div>
+                <div class="table-container">
+                    <table id="networkTable">
+                        <thead>
+                            <tr>
+                                <th>Interface</th>
+                                <th>Protocolo</th>
+                                <th>Endereço IP</th>
+                                <th>Máscara</th>
+                                <th>Gateway</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="networkTableBody">
+                            <tr><td colspan="6" class="text-center">Conecte-se ao roteador para ver os dados de rede</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Wireless Tab -->
+            <div id="wireless" class="tab-content">
+                <div class="tab-header">
+                    <h2>Wireless</h2>
+                    <p>Configurações e status das interfaces wireless</p>
+                </div>
+                <div class="table-container">
+                    <table id="wirelessTable">
+                        <thead>
+                            <tr>
+                                <th>Interface</th>
+                                <th>SSID</th>
+                                <th>Modo</th>
+                                <th>Canal</th>
+                                <th>Frequência</th>
+                                <th>Clientes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wirelessTableBody">
+                            <tr><td colspan="6" class="text-center">Conecte-se ao roteador para ver os dados wireless</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- DHCP Tab -->
+            <div id="dhcp" class="tab-content">
+                <div class="tab-header">
+                    <h2>Clientes DHCP</h2>
+                    <p>Dispositivos conectados à rede</p>
+                </div>
+                <div class="table-container">
+                    <table id="dhcpTable">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Endereço IP</th>
+                                <th>MAC Address</th>
+                                <th>Tempo de Lease</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dhcpTableBody">
+                            <tr><td colspan="4" class="text-center">Conecte-se ao roteador para ver os clientes DHCP</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Firewall Tab -->
+            <div id="firewall" class="tab-content">
+                <div class="tab-header">
+                    <h2>Firewall</h2>
+                    <p>Configurações e status do firewall</p>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Regras do Firewall</h3>
+                        <span class="interface-status" id="firewallStatus">Desconectado</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="firewallTable">
+                            <thead>
+                                <tr>
+                                    <th>Cadeia</th>
+                                    <th>Política</th>
+                                    <th>Protocolo</th>
+                                    <th>Origem</th>
+                                    <th>Destino</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="firewallTableBody">
+                                <tr><td colspan="6" class="text-center">Conecte-se ao roteador para ver as regras do firewall</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packages Tab -->
+            <div id="packages" class="tab-content">
+                <div class="tab-header">
+                    <h2>Gerenciamento de Pacotes</h2>
+                    <p>Instalar, atualizar e remover pacotes OPKG</p>
+                </div>
+                <div class="section">
+                    <div class="packages-header">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" placeholder="Buscar pacotes..." id="packageSearch">
+                        </div>
+                        <button class="btn btn-refresh" onclick="refreshPackages()" id="refreshPackagesButton">
+                            <span class="loading" id="refreshLoading" style="display: none;"></span>
+                            Atualizar Lista
+                        </button>
+                    </div>
+                    <div class="package-stats" id="packageStats">
+                        <div class="text-center">Conecte-se ao roteador para gerenciar pacotes</div>
+                    </div>
+                    <div class="package-list" id="packageList">
+                        <div class="text-center">Nenhum pacote disponível</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Tab -->
+            <div id="services" class="tab-content">
+                <div class="tab-header">
+                    <h2>Serviços do Sistema</h2>
+                    <p>Gerenciar serviços e daemons do OpenWRT</p>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Serviços do Sistema</h3>
+                        <span class="interface-status" id="servicesCount">Desconectado</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="servicesTable">
+                            <thead>
+                                <tr>
+                                    <th>Serviço</th>
+                                    <th>Status</th>
+                                    <th>Inicialização</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicesTableBody">
+                                <tr><td colspan="4" class="text-center">Conecte-se ao roteador para ver os serviços</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Tab -->
+            <div id="system" class="tab-content">
+                <div class="tab-header">
+                    <h2>Sistema</h2>
+                    <p>Informações detalhadas do sistema e ações administrativas</p>
+                </div>
+                
+                <div class="system-actions quick-actions">
+                    <button class="action-btn restart" onclick="restartService('network')">
+                        <span class="action-icon">🌐</span>
+                        Reiniciar Rede
+                    </button>
+                    <button class="action-btn restart" onclick="restartService('firewall')">
+                        <span class="action-icon">🛡️</span>
+                        Reiniciar Firewall
+                    </button>
+                    <button class="action-btn restart" onclick="restartService('dnsmasq')">
+                        <span class="action-icon">📡</span>
+                        Reiniciar DNS
+                    </button>
+                    <button class="action-btn reboot" onclick="rebootRouter()">
+                        <span class="action-icon">⚡</span>
+                        Reiniciar Roteador
+                    </button>
+                </div>
+
+                <div class="section">
+                    <h3>Informações Detalhadas do Sistema</h3>
+                    <div id="detailedSystemInfo">
+                        <div class="text-center">Conecte-se ao roteador para ver informações do sistema</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logs" class="tab-content">
+                <div class="tab-header">
+                    <h2>Logs do Sistema</h2>
+                    <p>Visualizar logs e diagnósticos do sistema</p>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Logs em Tempo Real</h3>
+                        <div>
+                            <button class="btn btn-refresh" onclick="refreshLogs()">Atualizar</button>
+                            <button class="btn btn-clear" onclick="clearLogs()">Limpar</button>
+                        </div>
+                    </div>
+                    <div class="update-log" id="systemLogs">
+                        <div class="log-entry log-info">Conecte-se ao roteador para visualizar os logs...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal" id="confirmationModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Confirmar Ação</h3>
+            <p id="modalMessage">Tem certeza que deseja realizar esta ação?</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="btn-confirm" id="modalConfirmButton">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
